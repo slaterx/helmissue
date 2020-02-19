@@ -1,0 +1,42 @@
+repositories:
+  - name: "monochart-repo"
+    url: "https://raw.githubusercontent.com/slaterx/helm-monochart/master"
+helmDefaults:
+  timeout: 1800
+environments:
+  staging:
+    values:
+      - {{ env "STAGING_YAML" | default "values/staging.yaml" }}
+releases:
+  - name: {{ .Environment.Name }}
+    namespace: {{ .Namespace }}
+    chart: monochart-repo/monochart
+    version: !!string 0.1.0
+    atomic: true
+    wait: true
+    labels:
+      app: {{ .Environment.Name }}
+    values:
+      - name: {{ .Environment.Name }}
+        deployment:
+          enabled: false
+        pod:
+          enabled: false
+        svc:
+          enabled: true
+          type: LoadBalancer
+          annotations:
+            service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+            service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "https"
+            service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "secret-arn"
+            service.beta.kubernetes.io/aws-load-balancer-connection-draining-enabled: "true"
+            service.beta.kubernetes.io/aws-load-balancer-connection-draining-timeout: "60"
+          ports:
+            - name: http
+              port: 80
+              protocol: TCP
+              targetPort: 3000
+            - name: https
+              port: 443
+              protocol: TCP
+              targetPort: 3000
